@@ -17,7 +17,7 @@ void *thread_function(void *arg)
 {
 	int thread_id = *(int *)arg;
 	int start = thread_id * (double)N / P;
-    int end = min((thread_id + 1) * (double)N / P, N);
+    	int end = min((thread_id + 1) * (double)N / P, N);
 	int i, j, k;
 	for (i = 0; i < N; i++) {
 		for (j = 0; j < N; j++) {

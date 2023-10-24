@@ -9,7 +9,11 @@ int P;
 int *v;
 int *vQSort;
 int **M;
+pthread_barrier_t barrier;
 
+double min(double a, double b) {
+    return a < b ? a : b;
+}
 void compare_vectors(int *a, int *b) {
 	int i;
 
@@ -125,9 +129,36 @@ void print()
 
 void *thread_function(void *arg)
 {
+	int i, j, k, aux[L];
 	int thread_id = *(int *)arg;
+	int start = thread_id * (double) L / P;
+    int end = min((thread_id + 1) * (double) L / P, L);
+	// shear sort clasic - trebuie paralelizat
+	for (k = 0; k < log(N) + 1; k++) {
+		// se sorteaza liniile pare crescator
+		// se sorteaza liniile impare descrescator
+		for (i = start; i < end; i++) {
+			if (i % 2) {
+				qsort(M[i], L, sizeof(int), cmpdesc);
+			} else {
+				qsort(M[i], L, sizeof(int), cmp);
+			}
+		}
+		pthread_barrier_wait(&barrier);
+		// se sorteaza coloanele descrescator
+		for (i = start; i < end; i++) {
+			for (j = 0; j < L; j++) {
+				aux[j] = M[j][i];
+			}
 
-	// implementati aici shear sort paralel
+			qsort(aux, L, sizeof(int), cmp);
+
+			for (j = 0; j < L; j++) {
+				M[j][i] = aux[j];
+			}
+		}
+		pthread_barrier_wait(&barrier);
+	}
 
 	pthread_exit(NULL);
 }
@@ -137,9 +168,11 @@ int main(int argc, char *argv[])
 	get_args(argc, argv);
 	init();
 
-	int i, j, k, aux[L];
+	//int i, j, k, aux[L];
+	int i;
 	pthread_t tid[P];
 	int thread_id[P];
+	pthread_barrier_init(&barrier, NULL, P);
 
 	// se sorteaza etalonul
 	copy_matrix_in_vector(vQSort, M);
@@ -156,31 +189,31 @@ int main(int argc, char *argv[])
 		pthread_join(tid[i], NULL);
 	}
 
-	// shear sort clasic - trebuie paralelizat
-	for (k = 0; k < log(N) + 1; k++) {
-		// se sorteaza liniile pare crescator
-		// se sorteaza liniile impare descrescator
-		for (i = 0; i < L; i++) {
-			if (i % 2) {
-				qsort(M[i], L, sizeof(int), cmpdesc);
-			} else {
-				qsort(M[i], L, sizeof(int), cmp);
-			}
-		}
+	//shear sort clasic - trebuie paralelizat
+	// for (k = 0; k < log(N) + 1; k++) {
+	// 	// se sorteaza liniile pare crescator
+	// 	// se sorteaza liniile impare descrescator
+	// 	for (i = 0; i < L; i++) {
+	// 		if (i % 2) {
+	// 			qsort(M[i], L, sizeof(int), cmpdesc);
+	// 		} else {
+	// 			qsort(M[i], L, sizeof(int), cmp);
+	// 		}
+	// 	}
 
-		// se sorteaza coloanele descrescator
-		for (i = 0; i < L; i++) {
-			for (j = 0; j < L; j++) {
-				aux[j] = M[j][i];
-			}
+	// 	// se sorteaza coloanele descrescator
+	// 	for (i = 0; i < L; i++) {
+	// 		for (j = 0; j < L; j++) {
+	// 			aux[j] = M[j][i];
+	// 		}
 
-			qsort(aux, L, sizeof(int), cmp);
+	// 		qsort(aux, L, sizeof(int), cmp);
 
-			for (j = 0; j < L; j++) {
-				M[j][i] = aux[j];
-			}
-		}
-	}
+	// 		for (j = 0; j < L; j++) {
+	// 			M[j][i] = aux[j];
+	// 		}
+	// 	}
+	// }
 
 	// se afiseaza matricea
 	// se afiseaza vectorul etalon
